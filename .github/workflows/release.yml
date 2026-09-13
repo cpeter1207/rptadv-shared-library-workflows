@@ -100,6 +100,11 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           cd release
+          # GitHub normalizes tildes in asset names; checksum the final names.
+          for package in ./*.deb; do
+            normalized="${package//\~/.}"
+            if test "$package" != "$normalized"; then mv "$package" "$normalized"; fi
+          done
           sha256sum -- *.deb *.tar.gz > SHA256SUMS
           args=()
           if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi
