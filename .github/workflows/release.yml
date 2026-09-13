@@ -36,7 +36,7 @@ jobs:
           test -n "$pr"
           head="$(gh pr view "$pr" --json headRefOid --jq .headRefOid)"
           gh api "repos/$GITHUB_REPOSITORY/commits/$head/check-runs" \
-            --jq '.check_runs | any(.name == "Required quality gate" and .conclusion == "success")' | grep -qx true
+            --jq '.check_runs | any(.name == "quality / Required quality gate" and .conclusion == "success")' | grep -qx true
           version="${TAG#v}"
           case "$version" in
             *-*) base="${version%%-*}"; pre="${version#*-}"; upstream="$base~${pre//./}" ;;
