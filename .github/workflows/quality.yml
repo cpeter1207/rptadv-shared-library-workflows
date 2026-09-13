@@ -1,0 +1,80 @@
+name: Shared library quality
+on:
+  workflow_call:
+    inputs:
+      code_ref:
+        type: string
+        required: true
+      full:
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  independent:
+    name: Platform-independent checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.code_ref }}
+      - name: Build source-owned Debian 13 quality image
+        run: docker build --pull -t shared-quality:local -f containers/quality.Dockerfile containers
+      - name: Check formatting, lint, analysis, and pull-request documentation once
+        env:
+          FULL: ${{ inputs.full }}
+          RPTADV_CONTAINER_PULL: '0'
+        run: |
+          if test "$FULL" = true; then
+            sh tools/run-in-quality-container.sh shared-quality:local make -j3 quality
+          else
+            sh tools/run-in-quality-container.sh shared-quality:local make -j2 lint static-analysis
+          fi
+  platforms:
+    if: inputs.full
+    name: Debian 13 ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.code_ref }}
+      - name: Build source-owned native quality image
+        run: docker build --pull -t shared-quality:local -f containers/quality.Dockerfile containers
+      - name: Build, test, package, and verify staged installation
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          RPTADV_CONTAINER_PULL: '0'
+        run: |
+          sh tools/run-in-quality-container.sh shared-quality:local sh -c \
+            'test "$(dpkg --print-architecture)" = "$1" && make platform-verify' sh "$EXPECTED_ARCH"
+      - name: Require full production line and branch coverage
+        if: matrix.arch == 'amd64'
+        env:
+          RPTADV_CONTAINER_PULL: '0'
+        run: sh tools/run-in-quality-container.sh shared-quality:local make coverage
+      - name: Upload coverage evidence
+        if: always() && matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-debian13-amd64
+          path: build/coverage
+          if-no-files-found: warn
+  required:
+    name: Required quality gate
+    if: always() && inputs.full
+    needs: [independent, platforms]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require all checks
+        env:
+          INDEPENDENT: ${{ needs.independent.result }}
+          PLATFORMS: ${{ needs.platforms.result }}
+        run: test "$INDEPENDENT" = success && test "$PLATFORMS" = success
