@@ -52,6 +52,7 @@ jobs:
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
           RPTADV_CONTAINER_PULL: '0'
+          RPTADV_CONTAINER_DOCKER_SOCKET: '1'
         run: |
           sh tools/run-in-quality-container.sh shared-quality:local sh -c \
             'test "$(dpkg --print-architecture)" = "$1" && make platform-verify' sh "$EXPECTED_ARCH"
