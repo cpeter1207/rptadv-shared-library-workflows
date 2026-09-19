@@ -55,7 +55,7 @@ jobs:
           RPTADV_CONTAINER_DOCKER_SOCKET: '1'
         run: |
           sh tools/run-in-quality-container.sh shared-quality:local sh -c \
-            'test "$(dpkg --print-architecture)" = "$1" && make platform-verify' sh "$EXPECTED_ARCH"
+            'test "$(dpkg --print-architecture)" = "$1" && make platform-verify QUALITY_IMAGE=shared-quality:local' sh "$EXPECTED_ARCH"
       - name: Require full production line and branch coverage
         if: matrix.arch == 'amd64'
         env:
