@@ -8,6 +8,10 @@ on:
       tag:
         type: string
         required: true
+      package_target:
+        description: Source-owned package target, including companion artifacts when required.
+        type: string
+        default: debian-package-check
 permissions:
   contents: write
   pull-requests: read
@@ -69,10 +73,12 @@ jobs:
           EXPECTED_ARCH: ${{ matrix.arch }}
           TAG: ${{ inputs.tag }}
           RPTADV_CONTAINER_PULL: '0'
+          PACKAGE_TARGET: ${{ inputs.package_target }}
         run: |
+          case "$PACKAGE_TARGET" in debian-package-check|release-packages) ;; *) exit 1 ;; esac
           sh tools/run-in-quality-container.sh shared-quality:local sh -c \
-            'test "$(dpkg --print-architecture)" = "$1" && make PACKAGE_VERSION="$2" debian-package-check' \
-            sh "$EXPECTED_ARCH" "${TAG#v}"
+            'test "$(dpkg --print-architecture)" = "$1" && make PACKAGE_VERSION="$2" "$3"' \
+            sh "$EXPECTED_ARCH" "${TAG#v}" "$PACKAGE_TARGET"
           mkdir -p release
           cp build/debian-source/*.deb release/
           if test "$EXPECTED_ARCH" = amd64; then cp build/*.tar.gz release/; fi
