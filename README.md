@@ -10,7 +10,8 @@ The RNNoise caller selects `release-packages` to include the official RNNoise
 companion packages already built by its quality image. Other callers use the
 default `debian-package-check` target. The native test launcher may expose the
 Docker socket for source-owned autopkgtest checks.
-# Unreleased ABI validation
+
+## Unreleased ABI validation
 
 `actions/install-candidate-dependencies` reads an optional ordered
 `.github/dependencies.json` in the calling source checkout. Each entry names a
