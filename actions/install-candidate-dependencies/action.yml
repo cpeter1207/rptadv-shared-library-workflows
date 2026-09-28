@@ -1,0 +1,45 @@
+name: Build pinned shared dependencies
+description: Build unreleased ABI-matched dynamic Debian packages from immutable source revisions.
+inputs:
+  manifest:
+    description: Optional ordered source dependency manifest in the caller checkout.
+    default: .github/dependencies.json
+  package-directory:
+    description: Directory receiving candidate Debian packages.
+    default: dependencies/packages
+  install:
+    description: Install candidates into the current Debian 13 job container.
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Build candidate packages when explicitly pinned
+      shell: bash
+      env:
+        MANIFEST: ${{ inputs.manifest }}
+        PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
+        INSTALL_CANDIDATES: ${{ inputs.install }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        if [[ ! -f "$MANIFEST" ]]; then exit 0; fi
+        mkdir -p "$PACKAGE_DIRECTORY"
+        destination=$(cd "$PACKAGE_DIRECTORY" && pwd)
+        manifest=$(realpath "$MANIFEST")
+        . /etc/os-release
+        if [[ "$ID" == debian && "$VERSION_ID" == 13 ]]; then
+          bash "$ACTION_PATH/build.sh" "$manifest" "$destination"
+        else
+          image=ghcr.io/cpeter1207/rpt-advanced-quality-debian13:latest
+          docker pull "$image"
+          docker run --rm --label rptadv.test=candidate-dependencies \
+            -v "$ACTION_PATH:/action:ro" -v "$manifest:/manifest.json:ro" \
+            -v "$destination:/packages" "$image" \
+            bash /action/build.sh /manifest.json /packages
+        fi
+        if [[ "$INSTALL_CANDIDATES" == true ]]; then
+          [[ "$ID" == debian && "$VERSION_ID" == 13 ]]
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install --reinstall -y "$destination"/*.deb
+          ldconfig
+        fi
