@@ -67,7 +67,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.code_ref }}
-      - run: docker build --pull -t shared-quality:local -f containers/quality.Dockerfile containers
+          path: production
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/rpt_advanced-workflows
+          path: workflow-tools
+      - run: docker build --pull -t shared-quality:local -f production/containers/quality.Dockerfile production/containers
       - name: Build release packages and source archive
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
@@ -76,7 +81,7 @@ jobs:
           PACKAGE_TARGET: ${{ inputs.package_target }}
         run: |
           case "$PACKAGE_TARGET" in debian-package-check|release-packages) ;; *) exit 1 ;; esac
-          sh tools/run-in-quality-container.sh shared-quality:local sh -c \
+          sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" sh -c \
             'test "$(dpkg --print-architecture)" = "$1" && make PACKAGE_VERSION="$2" "$3"' \
             sh "$EXPECTED_ARCH" "${TAG#v}" "$PACKAGE_TARGET"
           mkdir -p release

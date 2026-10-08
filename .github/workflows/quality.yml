@@ -18,17 +18,22 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.code_ref }}
+          path: production
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/rpt_advanced-workflows
+          path: workflow-tools
       - name: Build source-owned Debian 13 quality image
-        run: docker build --pull -t shared-quality:local -f containers/quality.Dockerfile containers
+        run: docker build --pull -t shared-quality:local -f production/containers/quality.Dockerfile production/containers
       - name: Check formatting, lint, analysis, and pull-request documentation once
         env:
           FULL: ${{ inputs.full }}
           RPTADV_CONTAINER_PULL: '0'
         run: |
           if test "$FULL" = true; then
-            sh tools/run-in-quality-container.sh shared-quality:local make -j3 quality
+            sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make -j3 quality
           else
-            sh tools/run-in-quality-container.sh shared-quality:local make -j2 lint static-analysis
+            sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make -j2 lint static-analysis
           fi
   platforms:
     if: inputs.full
@@ -46,21 +51,25 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.code_ref }}
+          path: production
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/rpt_advanced-workflows
+          path: workflow-tools
       - name: Build source-owned native quality image
-        run: docker build --pull -t shared-quality:local -f containers/quality.Dockerfile containers
+        run: docker build --pull -t shared-quality:local -f production/containers/quality.Dockerfile production/containers
       - name: Build, test, package, and verify staged installation
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
           RPTADV_CONTAINER_PULL: '0'
-          RPTADV_CONTAINER_DOCKER_SOCKET: '1'
         run: |
-          sh tools/run-in-quality-container.sh shared-quality:local sh -c \
+          sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" sh -c \
             'test "$(dpkg --print-architecture)" = "$1" && make platform-verify QUALITY_IMAGE=shared-quality:local' sh "$EXPECTED_ARCH"
       - name: Require full production line and branch coverage
         if: matrix.arch == 'amd64'
         env:
           RPTADV_CONTAINER_PULL: '0'
-        run: sh tools/run-in-quality-container.sh shared-quality:local make coverage
+        run: sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make coverage
       - name: Upload coverage evidence
         if: always() && matrix.arch == 'amd64'
         uses: actions/upload-artifact@v7
