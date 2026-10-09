@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-debian13-amd64
-          path: build/coverage
+          path: production/build/coverage
           if-no-files-found: warn
   required:
     name: Required quality gate
