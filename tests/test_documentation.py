@@ -39,7 +39,8 @@ class DocumentationWorkflow(unittest.TestCase):
         source = WORKFLOW.read_text()
         copy = source.split('          site="$RUNNER_TEMP/shared-library-docs"\n', 1)[1]
         copy = copy.split("      - uses: actions/configure-pages@", 1)[0]
-        script = 'site="$RUNNER_TEMP/shared-library-docs"\n' + textwrap.dedent(copy)
+        script = ('test ! -r target/doc/.lock\n'
+                  'site="$RUNNER_TEMP/shared-library-docs"\n' + textwrap.dedent(copy))
         with tempfile.TemporaryDirectory() as work:
             root = Path(work)
             root.chmod(0o755)
@@ -49,12 +50,15 @@ class DocumentationWorkflow(unittest.TestCase):
             (root / "target/doc/rptadvsquelch/index.html").write_text("Rustdoc page")
             lock = root / "target/doc/.lock"
             lock.write_text("private build lock")
-            lock.chmod(0o600)
+            lock.chmod(0o000)
             output = root / "output"
             output.mkdir(mode=0o777)
             output.chmod(0o777)
+            command = ["bash", "-e", "-c", script]
+            if os.geteuid() == 0:
+                command = ["runuser", "-u", "nobody", "--", *command]
             result = subprocess.run(
-                ["runuser", "-u", "nobody", "--", "bash", "-e", "-c", script],
+                command,
                 cwd=root, env=dict(os.environ, RUNNER_TEMP=str(output)),
                 text=True, capture_output=True,
             )
