@@ -1,6 +1,9 @@
 name: Verified shared library release
 on:
   workflow_call:
+    secrets:
+      APT_INDEX_DISPATCH_TOKEN:
+        required: false
     inputs:
       code_ref:
         type: string
@@ -96,6 +99,8 @@ jobs:
     needs: binaries
     name: Publish checked release artifacts
     runs-on: ubuntu-24.04
+    env:
+      INDEX_TOKEN: ${{ secrets.APT_INDEX_DISPATCH_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -121,3 +126,13 @@ jobs:
           if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi
           gh release create "$TAG" ./*.deb ./*.tar.gz SHA256SUMS \
             --verify-tag --generate-notes --title "$TAG" "${args[@]}"
+      - name: Refresh signed package index
+        if: env.INDEX_TOKEN != ''
+        uses: cpeter1207/USBRadioPlus-Workflows/actions/dispatch-package-index@main
+        with:
+          package-repository: ${{ github.repository }}
+          package-tag: ${{ inputs.tag }}
+          token: ${{ secrets.APT_INDEX_DISPATCH_TOKEN }}
+      - name: Report unavailable package-index dispatch
+        if: env.INDEX_TOKEN == ''
+        run: echo '::notice::APT_INDEX_DISPATCH_TOKEN was not supplied; release assets are published, but the signed package index was not refreshed.'

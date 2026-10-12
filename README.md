@@ -12,6 +12,20 @@ companion packages already built by its quality image. Other callers use the
 default `debian-package-check` target. The native test launcher may expose the
 Docker socket for source-owned autopkgtest checks.
 
+New functional-library callers pass `APT_INDEX_DISPATCH_TOKEN` to the reusable
+release workflow. After GitHub publishes its Debian 13 release assets, the
+workflow dispatches that repository and tag to USBRadioPlus's signed package
+index. Existing callers without the secret keep their current release behavior.
+The token needs only `Contents: write` on `cpeter1207/USBRadioPlus`.
+When the secret is absent, the release reports that index publication was skipped.
+
+The reusable `documentation.yml(code_ref)` publishes source-owned `make docs`
+output to the source repository's GitHub Pages site after confirming that the
+revision is merged into `main` and its pull-request quality gate passed. Thin
+main-push callers grant `contents: read`, `pull-requests: read`, `checks: read`,
+`pages: write`, and `id-token: write`. Documentation publication does not repeat
+the full quality gate.
+
 ## Unreleased ABI validation
 
 `actions/install-candidate-dependencies` reads an optional ordered
