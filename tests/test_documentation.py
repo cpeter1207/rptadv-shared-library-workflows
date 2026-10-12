@@ -2,7 +2,9 @@
 
 from pathlib import Path
 import re
+import os
 import subprocess
+import tempfile
 import textwrap
 import unittest
 
@@ -32,6 +34,41 @@ class DocumentationWorkflow(unittest.TestCase):
                 ["shellcheck", "--shell=bash", "-"],
                 input=textwrap.dedent(script), text=True, check=True,
             )
+
+    def test_publication_ignores_private_rustdoc_lock_but_keeps_html(self):
+        source = WORKFLOW.read_text()
+        copy = source.split('          site="$RUNNER_TEMP/shared-library-docs"\n', 1)[1]
+        copy = copy.split("      - uses: actions/configure-pages@", 1)[0]
+        script = ('test ! -r target/doc/.lock\n'
+                  'site="$RUNNER_TEMP/shared-library-docs"\n' + textwrap.dedent(copy))
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            root.chmod(0o755)
+            (root / "build/doxygen/html").mkdir(parents=True)
+            (root / "build/doxygen/html/index.html").write_text("Doxygen page")
+            (root / "target/doc/rptadvsquelch").mkdir(parents=True)
+            (root / "target/doc/rptadvsquelch/index.html").write_text("Rustdoc page")
+            lock = root / "target/doc/.lock"
+            lock.write_text("private build lock")
+            lock.chmod(0o000)
+            output = root / "output"
+            output.mkdir(mode=0o777)
+            output.chmod(0o777)
+            command = ["bash", "-e", "-c", script]
+            if os.geteuid() == 0:
+                command = ["runuser", "-u", "nobody", "--", *command]
+            result = subprocess.run(
+                command,
+                cwd=root, env=dict(os.environ, RUNNER_TEMP=str(output)),
+                text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            site = output / "shared-library-docs"
+            self.assertEqual((site / "index.html").read_text(), "Doxygen page")
+            self.assertEqual(
+                (site / "rust/rptadvsquelch/index.html").read_text(), "Rustdoc page"
+            )
+            self.assertFalse((site / "rust/.lock").exists())
 
 
 if __name__ == "__main__":

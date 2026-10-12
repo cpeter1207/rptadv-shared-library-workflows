@@ -54,7 +54,7 @@ jobs:
           cp -a build/doxygen/html/. "$site/"
           if test -d target/doc; then
             mkdir -p "$site/rust"
-            cp -a target/doc/. "$site/rust/"
+            tar -C target/doc --exclude='./.lock' -cf - . | tar -C "$site/rust" -xf -
           fi
       - uses: actions/configure-pages@v6
         with:
