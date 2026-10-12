@@ -1,0 +1,66 @@
+name: Publish shared library documentation
+on:
+  workflow_call:
+    inputs:
+      code_ref:
+        description: Exact merged main revision whose documentation is published.
+        type: string
+        required: true
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.code_ref }}
+          fetch-depth: 0
+      - name: Require merged and verified main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit="$(git rev-parse HEAD)"
+          git fetch origin main
+          git merge-base --is-ancestor "$commit" origin/main
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/commits/$commit/pulls" \
+            --jq '.[] | select(.merged_at != null and .base.ref == "main") | .number' | head -n1)"
+          test -n "$pr"
+          head="$(gh pr view "$pr" --json headRefOid --jq .headRefOid)"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$head/check-runs" \
+            --jq '.check_runs | any(.name == "quality / Required quality gate" and .conclusion == "success")' | grep -qx true
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/rpt_advanced-workflows
+          path: workflow-tools
+      - name: Generate source-owned documentation
+        env:
+          RPTADV_CONTAINER_PULL: '0'
+        run: |
+          docker build --pull -t shared-docs:local -f containers/quality.Dockerfile containers
+          sh workflow-tools/tools/run-in-quality-container.sh shared-docs:local "$GITHUB_WORKSPACE" make docs
+          site="$RUNNER_TEMP/shared-library-docs"
+          mkdir -p "$site"
+          cp -a build/doxygen/html/. "$site/"
+          if test -d target/doc; then
+            mkdir -p "$site/rust"
+            cp -a target/doc/. "$site/rust/"
+          fi
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/shared-library-docs
+      - uses: actions/deploy-pages@v5
+        id: pages
