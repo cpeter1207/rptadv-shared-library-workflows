@@ -85,6 +85,19 @@ class CandidateManifest(unittest.TestCase):
             )
         )
 
+    def test_pinned_dtmf_library_is_a_valid_candidate_source(self):
+        self.assertTrue(
+            self.validate(
+                [
+                    {
+                        "repository": "librptadvdtmf",
+                        "sha": "7a3ec75544be9891567849b1f2badb43f63905b6",
+                        "packages": ["librptadvdtmf1", "librptadvdtmf-dev"],
+                    }
+                ]
+            )
+        )
+
     def test_moving_refs_and_unrelated_or_shell_inputs_rejected(self):
         for field, value in (
             ("sha", "main"),
