@@ -98,6 +98,30 @@ class CandidateManifest(unittest.TestCase):
             )
         )
 
+    def test_schedule_candidate_requires_immutable_revision(self):
+        for revision, accepted in (
+            ("622e81add8ac478385883fdaf5e9939ecce35109", True),
+            ("main", False),
+            ("$(id)", False),
+            ("a" * 39, False),
+        ):
+            with self.subTest(revision=revision):
+                self.assertEqual(
+                    self.validate(
+                        [
+                            {
+                                "repository": "librptadvschedule",
+                                "sha": revision,
+                                "packages": [
+                                    "librptadvschedule1",
+                                    "librptadvschedule-dev",
+                                ],
+                            }
+                        ]
+                    ),
+                    accepted,
+                )
+
     def test_moving_refs_and_unrelated_or_shell_inputs_rejected(self):
         for field, value in (
             ("sha", "main"),
