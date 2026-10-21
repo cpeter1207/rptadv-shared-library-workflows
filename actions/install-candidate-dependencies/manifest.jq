@@ -7,6 +7,7 @@ type == "array" and length > 0 and all(.[];
     "rptadv-gpio-adapter",
     "rptadv-ffmpeg-adapter",
     "librptadvdtmf",
+    "librptadvschedule",
     "librptadviax2"
   )) and
   (.sha | test("^[0-9a-f]{40}$")) and
