@@ -8,7 +8,8 @@ type == "array" and length > 0 and all(.[];
     "rptadv-ffmpeg-adapter",
     "librptadvdtmf",
     "librptadvschedule",
-    "librptadviax2"
+    "librptadviax2",
+    "rptadv-codec-adapters"
   )) and
   (.sha | test("^[0-9a-f]{40}$")) and
   (.packages | type == "array" and length > 0 and all(.[]; test("^lib[a-z0-9][a-z0-9+.-]*$"))))

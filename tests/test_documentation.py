@@ -1,13 +1,12 @@
 """Documentation publication uses the already-validated main revision."""
 
-from pathlib import Path
-import re
 import os
+import re
 import subprocess
 import tempfile
 import textwrap
 import unittest
-
+from pathlib import Path
 
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github/workflows/documentation.yml"
 
@@ -32,15 +31,19 @@ class DocumentationWorkflow(unittest.TestCase):
         for script in scripts:
             subprocess.run(
                 ["shellcheck", "--shell=bash", "-"],
-                input=textwrap.dedent(script), text=True, check=True,
+                input=textwrap.dedent(script),
+                text=True,
+                check=True,
             )
 
     def test_publication_ignores_private_rustdoc_lock_but_keeps_html(self):
         source = WORKFLOW.read_text()
         copy = source.split('          site="$RUNNER_TEMP/shared-library-docs"\n', 1)[1]
         copy = copy.split("      - uses: actions/configure-pages@", 1)[0]
-        script = ('test ! -r target/doc/.lock\n'
-                  'site="$RUNNER_TEMP/shared-library-docs"\n' + textwrap.dedent(copy))
+        script = (
+            "test ! -r target/doc/.lock\n"
+            'site="$RUNNER_TEMP/shared-library-docs"\n' + textwrap.dedent(copy)
+        )
         with tempfile.TemporaryDirectory() as work:
             root = Path(work)
             root.chmod(0o755)
@@ -59,8 +62,11 @@ class DocumentationWorkflow(unittest.TestCase):
                 command = ["runuser", "-u", "nobody", "--", *command]
             result = subprocess.run(
                 command,
-                cwd=root, env=dict(os.environ, RUNNER_TEMP=str(output)),
-                text=True, capture_output=True,
+                cwd=root,
+                env=dict(os.environ, RUNNER_TEMP=str(output)),
+                text=True,
+                capture_output=True,
+                check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             site = output / "shared-library-docs"

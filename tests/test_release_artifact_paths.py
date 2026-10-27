@@ -1,8 +1,7 @@
 """The release workflow copies artifacts from its production checkout."""
 
-from pathlib import Path
 import unittest
-
+from pathlib import Path
 
 WORKFLOW = (
     Path(__file__).resolve().parents[1] / ".github/workflows/release.yml"
@@ -16,7 +15,9 @@ class ReleaseArtifactPaths(unittest.TestCase):
 
     def test_index_dispatch_follows_published_release(self):
         publication = WORKFLOW.index('gh release create "$TAG"')
-        dispatch = WORKFLOW.index("USBRadioPlus-Workflows/actions/dispatch-package-index@main")
+        dispatch = WORKFLOW.index(
+            "USBRadioPlus-Workflows/actions/dispatch-package-index@main"
+        )
         self.assertLess(publication, dispatch)
         self.assertIn("APT_INDEX_DISPATCH_TOKEN:", WORKFLOW)
         self.assertIn("token: ${{ secrets.APT_INDEX_DISPATCH_TOKEN }}", WORKFLOW)

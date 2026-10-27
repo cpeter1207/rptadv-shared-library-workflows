@@ -77,9 +77,22 @@ class CandidateManifest(unittest.TestCase):
                         "repository": "librptadviax2",
                         "sha": "a" * 40,
                         "packages": [
-                            "librptadv-iax2-client1",
+                            "librptadv-iax2-client2",
                             "librptadv-iax2-client-dev",
                         ],
+                    }
+                ]
+            )
+        )
+
+    def test_codec_providers_are_valid_candidate_sources(self):
+        self.assertTrue(
+            self.validate(
+                [
+                    {
+                        "repository": "rptadv-codec-adapters",
+                        "sha": "a" * 40,
+                        "packages": ["librptadv-codec-dev", "librptadv-codec-g7111"],
                     }
                 ]
             )
