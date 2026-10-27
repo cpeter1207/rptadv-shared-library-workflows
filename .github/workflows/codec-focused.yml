@@ -21,7 +21,7 @@ jobs:
           TARGET: ${{ inputs.target }}
         run: |
           printf '%s\n' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'
-          case "$TARGET" in test|abi-check|install-check|package-check|docs|lint|static-analysis|coverage|coverage-foundations) ;; *) exit 2 ;; esac
+          case "$TARGET" in test|abi-check|install-check|package-check|docs|lint|static-analysis|coverage|coverage-foundations|coverage-codecs) ;; *) exit 2 ;; esac
       - uses: actions/checkout@v7
         with:
           repository: cpeter1207/rptadv-codec-adapters
