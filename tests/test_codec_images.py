@@ -31,6 +31,12 @@ class CodecImages(unittest.TestCase):
         self.assertIn("RPTADV_CODEC_SOURCE_CACHE", image)
         self.assertIn("RPTADV_CODEC_BACKEND_LIBDIR", image)
 
+    def test_native_c_coverage_runtime_is_linked_and_exercised(self):
+        image = (ROOT / "containers/codecs.Dockerfile").read_text()
+        self.assertIn("libclang-rt-19-dev", image)
+        self.assertIn("-fprofile-instr-generate -fcoverage-mapping", image)
+        self.assertIn("test -s /tmp/codec-coverage-smoke.profraw", image)
+
     def test_focused_target_cannot_supply_shell_commands(self):
         workflow = (ROOT / ".github/workflows/codec-focused.yml").read_text()
         self.assertIn("^[0-9a-f]{40}$", workflow)
