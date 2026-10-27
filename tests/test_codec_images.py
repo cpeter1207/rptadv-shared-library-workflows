@@ -21,6 +21,16 @@ class CodecImages(unittest.TestCase):
         self.assertIn('"$IMAGE:$RUN_TAG-amd64" "$IMAGE:$RUN_TAG-arm64"', workflow)
         self.assertNotIn("-candidate", workflow)
 
+    def test_private_backends_use_reviewed_provider_revision(self):
+        workflow = (ROOT / ".github/workflows/codec-images.yml").read_text()
+        image = (ROOT / "containers/codecs.Dockerfile").read_text()
+        self.assertIn("repository: cpeter1207/rptadv-codec-adapters", workflow)
+        self.assertIn("path: codec-bootstrap", workflow)
+        self.assertIn("context: .", workflow)
+        self.assertIn("packaging/external/build.py", image)
+        self.assertIn("RPTADV_CODEC_SOURCE_CACHE", image)
+        self.assertIn("RPTADV_CODEC_BACKEND_LIBDIR", image)
+
     def test_focused_target_cannot_supply_shell_commands(self):
         workflow = (ROOT / ".github/workflows/codec-focused.yml").read_text()
         self.assertIn("^[0-9a-f]{40}$", workflow)

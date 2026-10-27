@@ -9,4 +9,18 @@ RUN test -f /usr/include/gsm/gsm.h && \
     pkg-config --exists speex opus spandsp libavcodec libavutil && \
     cargo --version && rustc --version && cppcheck --version && \
     clang-format --version && ruff --version
+COPY codec-bootstrap/packaging/external /opt/codec-bootstrap/packaging/external
+COPY codec-bootstrap/dependencies/codecs.json /opt/codec-bootstrap/dependencies/codecs.json
+COPY codec-bootstrap/include/rptadv_codec.h /usr/include/rptadv-codec/rptadv_codec.h
+ENV RPTADV_CODEC_SOURCE_CACHE=/opt/rptadv-codec-source-cache
+ENV RPTADV_CODEC_BACKEND_LIBDIR=/opt/rptadv-codec-backends/lib
+ENV LD_LIBRARY_PATH=/opt/rptadv-codec-backends/lib
+RUN set -eu; for backend in bcg729 ilbc dialogic; do \
+      python3 /opt/codec-bootstrap/packaging/external/build.py "$backend" \
+        --prefix /opt/rptadv-codec-backends; \
+    done && \
+    test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_bcg729_gpl2.so.0" && \
+    test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_ilbc2.so.2" && \
+    test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_dialogic.so.1" && \
+    rm -rf /opt/codec-bootstrap
 WORKDIR /workspace
