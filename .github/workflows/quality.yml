@@ -8,6 +8,10 @@ on:
       full:
         type: boolean
         default: true
+      quality_image:
+        description: Optional prebuilt native multi-architecture quality image.
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -24,19 +28,22 @@ jobs:
           repository: cpeter1207/rpt_advanced-workflows
           path: workflow-tools
       - name: Build source-owned Debian 13 quality image
+        if: inputs.quality_image == ''
         run: docker build --pull -t shared-quality:local -f production/containers/quality.Dockerfile production/containers
       - name: Check formatting, lint, analysis, and pull-request documentation once
         env:
           FULL: ${{ inputs.full }}
-          RPTADV_CONTAINER_PULL: '0'
+          QUALITY_IMAGE: ${{ inputs.quality_image || 'shared-quality:local' }}
+          RPTADV_CONTAINER_PULL: ${{ inputs.quality_image == '' && '0' || '1' }}
         run: |
           if test "$FULL" = true; then
-            sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make -j3 quality
+            sh workflow-tools/tools/run-in-quality-container.sh "$QUALITY_IMAGE" "$GITHUB_WORKSPACE/production" make -j3 quality
           else
-            sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make -j2 lint static-analysis
+            sh workflow-tools/tools/run-in-quality-container.sh "$QUALITY_IMAGE" "$GITHUB_WORKSPACE/production" make -j2 lint static-analysis
           fi
   platforms:
     if: inputs.full
+    needs: independent
     name: Debian 13 ${{ matrix.arch }}
     strategy:
       fail-fast: false
@@ -57,19 +64,22 @@ jobs:
           repository: cpeter1207/rpt_advanced-workflows
           path: workflow-tools
       - name: Build source-owned native quality image
+        if: inputs.quality_image == ''
         run: docker build --pull -t shared-quality:local -f production/containers/quality.Dockerfile production/containers
       - name: Build, test, package, and verify staged installation
         env:
           EXPECTED_ARCH: ${{ matrix.arch }}
-          RPTADV_CONTAINER_PULL: '0'
+          QUALITY_IMAGE: ${{ inputs.quality_image || 'shared-quality:local' }}
+          RPTADV_CONTAINER_PULL: ${{ inputs.quality_image == '' && '0' || '1' }}
         run: |
-          sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" sh -c \
-            'test "$(dpkg --print-architecture)" = "$1" && make platform-verify QUALITY_IMAGE=shared-quality:local' sh "$EXPECTED_ARCH"
+          sh workflow-tools/tools/run-in-quality-container.sh "$QUALITY_IMAGE" "$GITHUB_WORKSPACE/production" sh -c \
+            'test "$(dpkg --print-architecture)" = "$1" && make platform-verify QUALITY_IMAGE="$2"' sh "$EXPECTED_ARCH" "$QUALITY_IMAGE"
       - name: Require full production line and branch coverage
         if: matrix.arch == 'amd64'
         env:
-          RPTADV_CONTAINER_PULL: '0'
-        run: sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" make coverage
+          QUALITY_IMAGE: ${{ inputs.quality_image || 'shared-quality:local' }}
+          RPTADV_CONTAINER_PULL: ${{ inputs.quality_image == '' && '0' || '1' }}
+        run: sh workflow-tools/tools/run-in-quality-container.sh "$QUALITY_IMAGE" "$GITHUB_WORKSPACE/production" make coverage
       - name: Upload coverage evidence
         if: always() && matrix.arch == 'amd64'
         uses: actions/upload-artifact@v7
