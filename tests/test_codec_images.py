@@ -43,6 +43,7 @@ class CodecImages(unittest.TestCase):
         self.assertIn("c284e0cf4d2e3f400cba47c0ac8819d17fa8dfaf", workflow)
         self.assertIn("ENV RPTADV_CODEC_DIR=/opt/rptadv-codec-providers/lib", image)
         self.assertIn("make -C /opt/codec-bootstrap all abi-check", image)
+        self.assertIn("COPY codec-bootstrap/include /opt/codec-bootstrap/include", image)
         self.assertIn("assert len(paths) == 10", image)
         self.assertIn("ctypes.CDLL(path)", image)
 

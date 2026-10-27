@@ -17,6 +17,7 @@ RUN printf 'int main(void) { return 0; }\n' | \
 COPY codec-bootstrap/packaging/external /opt/codec-bootstrap/packaging/external
 COPY codec-bootstrap/dependencies/codecs.json /opt/codec-bootstrap/dependencies/codecs.json
 COPY codec-bootstrap/include/rptadv_codec.h /usr/include/rptadv-codec/rptadv_codec.h
+COPY codec-bootstrap/include /opt/codec-bootstrap/include
 COPY codec-bootstrap/Cargo.toml codec-bootstrap/Cargo.lock codec-bootstrap/Makefile /opt/codec-bootstrap/
 COPY codec-bootstrap/rust /opt/codec-bootstrap/rust
 COPY codec-bootstrap/tests/abi_header_smoke.c /opt/codec-bootstrap/tests/abi_header_smoke.c
