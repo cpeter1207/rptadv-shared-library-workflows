@@ -37,3 +37,4 @@ class CodecImages(unittest.TestCase):
         self.assertIn('case "$TARGET" in test|abi-check|install-check', workflow)
         self.assertIn('make "$TARGET"', workflow)
         self.assertIn("packages: read", workflow)
+        self.assertIn("codec-coverage-amd64", workflow)
