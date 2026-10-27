@@ -37,6 +37,15 @@ class CodecImages(unittest.TestCase):
         self.assertIn("-fprofile-instr-generate -fcoverage-mapping", image)
         self.assertIn("test -s /tmp/codec-coverage-smoke.profraw", image)
 
+    def test_protocol_tests_have_all_pinned_dynamic_providers(self):
+        image = (ROOT / "containers/codecs.Dockerfile").read_text()
+        workflow = (ROOT / ".github/workflows/codec-images.yml").read_text()
+        self.assertIn("c284e0cf4d2e3f400cba47c0ac8819d17fa8dfaf", workflow)
+        self.assertIn("ENV RPTADV_CODEC_DIR=/opt/rptadv-codec-providers/lib", image)
+        self.assertIn("make -C /opt/codec-bootstrap all abi-check", image)
+        self.assertIn("assert len(paths) == 10", image)
+        self.assertIn("ctypes.CDLL(path)", image)
+
     def test_focused_target_cannot_supply_shell_commands(self):
         workflow = (ROOT / ".github/workflows/codec-focused.yml").read_text()
         self.assertIn("^[0-9a-f]{40}$", workflow)

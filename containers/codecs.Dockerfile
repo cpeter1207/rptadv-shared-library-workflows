@@ -17,9 +17,13 @@ RUN printf 'int main(void) { return 0; }\n' | \
 COPY codec-bootstrap/packaging/external /opt/codec-bootstrap/packaging/external
 COPY codec-bootstrap/dependencies/codecs.json /opt/codec-bootstrap/dependencies/codecs.json
 COPY codec-bootstrap/include/rptadv_codec.h /usr/include/rptadv-codec/rptadv_codec.h
+COPY codec-bootstrap/Cargo.toml codec-bootstrap/Cargo.lock codec-bootstrap/Makefile /opt/codec-bootstrap/
+COPY codec-bootstrap/rust /opt/codec-bootstrap/rust
+COPY codec-bootstrap/tests/abi_header_smoke.c /opt/codec-bootstrap/tests/abi_header_smoke.c
 ENV RPTADV_CODEC_SOURCE_CACHE=/opt/rptadv-codec-source-cache
 ENV RPTADV_CODEC_BACKEND_LIBDIR=/opt/rptadv-codec-backends/lib
-ENV LD_LIBRARY_PATH=/opt/rptadv-codec-backends/lib
+ENV RPTADV_CODEC_DIR=/opt/rptadv-codec-providers/lib
+ENV LD_LIBRARY_PATH=/opt/rptadv-codec-providers/lib:/opt/rptadv-codec-backends/lib
 RUN set -eu; for backend in bcg729 ilbc dialogic; do \
       python3 /opt/codec-bootstrap/packaging/external/build.py "$backend" \
         --prefix /opt/rptadv-codec-backends; \
@@ -27,5 +31,9 @@ RUN set -eu; for backend in bcg729 ilbc dialogic; do \
     test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_bcg729_gpl2.so.0" && \
     test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_ilbc2.so.2" && \
     test -f "$RPTADV_CODEC_BACKEND_LIBDIR/librptadv_dialogic.so.1" && \
+    make -C /opt/codec-bootstrap all abi-check && \
+    mkdir -p "$RPTADV_CODEC_DIR" && \
+    cp -a /opt/codec-bootstrap/build/librptadv_codec_*.so* "$RPTADV_CODEC_DIR/" && \
+    python3 -c 'import ctypes, glob, os; paths = glob.glob(os.environ["RPTADV_CODEC_DIR"] + "/*.so.1"); assert len(paths) == 10; [ctypes.CDLL(path) for path in paths]' && \
     rm -rf /opt/codec-bootstrap
 WORKDIR /workspace
