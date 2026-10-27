@@ -21,6 +21,8 @@ COPY codec-bootstrap/include /opt/codec-bootstrap/include
 COPY codec-bootstrap/Cargo.toml codec-bootstrap/Cargo.lock codec-bootstrap/Makefile /opt/codec-bootstrap/
 COPY codec-bootstrap/rust /opt/codec-bootstrap/rust
 COPY codec-bootstrap/tests/abi_header_smoke.c /opt/codec-bootstrap/tests/abi_header_smoke.c
+COPY codec-bootstrap/debian /opt/codec-bootstrap/debian
+COPY codec-bootstrap/rptadv_codec.pc.in /opt/codec-bootstrap/rptadv_codec.pc.in
 ENV RPTADV_CODEC_SOURCE_CACHE=/opt/rptadv-codec-source-cache
 ENV RPTADV_CODEC_BACKEND_LIBDIR=/opt/rptadv-codec-backends/lib
 ENV RPTADV_CODEC_DIR=/opt/rptadv-codec-providers/lib
@@ -36,5 +38,9 @@ RUN set -eu; for backend in bcg729 ilbc dialogic; do \
     mkdir -p "$RPTADV_CODEC_DIR" && \
     cp -a /opt/codec-bootstrap/build/librptadv_codec_*.so* "$RPTADV_CODEC_DIR/" && \
     python3 -c 'import ctypes, glob, os; paths = glob.glob(os.environ["RPTADV_CODEC_DIR"] + "/*.so.1"); assert len(paths) == 10; [ctypes.CDLL(path) for path in paths]' && \
-    rm -rf /opt/codec-bootstrap
+    (cd /opt/codec-bootstrap && DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -b) && \
+    dpkg -i /opt/librptadv-*.deb && \
+    test "$(dpkg-query -W -f='${db:Status-Status}' librptadv-codec-dev)" = installed && \
+    rm -rf /opt/codec-bootstrap && \
+    rm -f /opt/librptadv-*.deb /opt/rptadv-codec-adapters_*.buildinfo /opt/rptadv-codec-adapters_*.changes
 WORKDIR /workspace

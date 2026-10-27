@@ -7,6 +7,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CodecImages(unittest.TestCase):
+    def test_protocol_packaging_has_real_debian_codec_dependencies(self):
+        image = (ROOT / "containers/codecs.Dockerfile").read_text()
+        self.assertIn("COPY codec-bootstrap/debian /opt/codec-bootstrap/debian", image)
+        self.assertIn("dpkg-buildpackage -us -uc -b", image)
+        self.assertIn("dpkg -i /opt/librptadv-*.deb", image)
+        self.assertIn("dpkg-query -W", image)
+        self.assertIn("librptadv-codec-dev", image)
+
     def test_prebuilt_input_preserves_source_owned_default(self):
         workflow = (ROOT / ".github/workflows/quality.yml").read_text()
         self.assertIn("quality_image:", workflow)
