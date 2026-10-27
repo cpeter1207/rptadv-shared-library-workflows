@@ -53,3 +53,5 @@ class CodecImages(unittest.TestCase):
         self.assertIn('make "$TARGET"', workflow)
         self.assertIn("packages: read", workflow)
         self.assertIn("codec-coverage-amd64", workflow)
+        self.assertIn("rptadv-codec-adapters|librptadviax2", workflow)
+        self.assertIn("default: rptadv-codec-adapters", workflow)

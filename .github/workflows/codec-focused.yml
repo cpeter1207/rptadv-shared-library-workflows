@@ -2,6 +2,10 @@ name: Focused codec verification
 on:
   workflow_call:
     inputs:
+      repository:
+        required: false
+        type: string
+        default: rptadv-codec-adapters
       source_sha:
         required: true
         type: string
@@ -18,13 +22,15 @@ jobs:
       - name: Validate bounded test request
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_REPOSITORY: ${{ inputs.repository }}
           TARGET: ${{ inputs.target }}
         run: |
           printf '%s\n' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          case "$SOURCE_REPOSITORY" in rptadv-codec-adapters|librptadviax2) ;; *) exit 2 ;; esac
           case "$TARGET" in test|abi-check|install-check|package-check|docs|lint|static-analysis|coverage|coverage-foundations|coverage-codecs|coverage-owned-c) ;; *) exit 2 ;; esac
       - uses: actions/checkout@v7
         with:
-          repository: cpeter1207/rptadv-codec-adapters
+          repository: cpeter1207/${{ inputs.repository }}
           ref: ${{ inputs.source_sha }}
           path: production
       - uses: actions/checkout@v7
