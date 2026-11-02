@@ -9,6 +9,7 @@ type == "array" and length > 0 and all(.[];
     "librptadvdtmf",
     "librptadvschedule",
     "librptadviax2",
+    "librptadvecholink",
     "rptadv-codec-adapters"
   )) and
   (.sha | test("^[0-9a-f]{40}$")) and

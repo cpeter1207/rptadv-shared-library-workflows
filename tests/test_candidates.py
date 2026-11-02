@@ -40,9 +40,10 @@ class CandidateManifest(unittest.TestCase):
             )
         )
 
-    def test_published_radio_adapters_are_valid_candidate_sources(self):
+    def test_published_libraries_and_adapters_are_valid_candidate_sources(self):
         packages = {
             "librptadvradio": ["librptadvradio4", "librptadvradio-dev"],
+            "librptadvecholink": ["librptadvecholink1", "librptadvecholink-dev"],
             "rptadv-portaudio-alsa-adapter": [
                 "librptadv-portaudio-alsa-adapter2",
                 "librptadv-portaudio-alsa-adapter-dev",
