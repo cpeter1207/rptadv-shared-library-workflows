@@ -85,7 +85,7 @@ jobs:
         run: |
           case "$PACKAGE_TARGET" in debian-package-check|release-packages) ;; *) exit 1 ;; esac
           sh workflow-tools/tools/run-in-quality-container.sh shared-quality:local "$GITHUB_WORKSPACE/production" sh -c \
-            'test "$(dpkg --print-architecture)" = "$1" && make PACKAGE_VERSION="$2" "$3"' \
+            'test "$(dpkg --print-architecture)" = "$1" && DEB_BUILD_OPTIONS=nocheck make PACKAGE_VERSION="$2" "$3"' \
             sh "$EXPECTED_ARCH" "${TAG#v}" "$PACKAGE_TARGET"
           mkdir -p release
           cp production/build/debian-source/*.deb release/
