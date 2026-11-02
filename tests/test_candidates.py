@@ -40,9 +40,10 @@ class CandidateManifest(unittest.TestCase):
             )
         )
 
-    def test_published_radio_adapters_are_valid_candidate_sources(self):
+    def test_published_libraries_and_adapters_are_valid_candidate_sources(self):
         packages = {
             "librptadvradio": ["librptadvradio4", "librptadvradio-dev"],
+            "librptadvecholink": ["librptadvecholink1", "librptadvecholink-dev"],
             "rptadv-portaudio-alsa-adapter": [
                 "librptadv-portaudio-alsa-adapter2",
                 "librptadv-portaudio-alsa-adapter-dev",
@@ -77,9 +78,22 @@ class CandidateManifest(unittest.TestCase):
                         "repository": "librptadviax2",
                         "sha": "a" * 40,
                         "packages": [
-                            "librptadv-iax2-client1",
+                            "librptadv-iax2-client2",
                             "librptadv-iax2-client-dev",
                         ],
+                    }
+                ]
+            )
+        )
+
+    def test_codec_providers_are_valid_candidate_sources(self):
+        self.assertTrue(
+            self.validate(
+                [
+                    {
+                        "repository": "rptadv-codec-adapters",
+                        "sha": "a" * 40,
+                        "packages": ["librptadv-codec-dev", "librptadv-codec-g7111"],
                     }
                 ]
             )

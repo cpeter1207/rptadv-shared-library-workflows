@@ -1,8 +1,7 @@
 """Coverage evidence is relative to the production checkout, not the runner."""
 
-from pathlib import Path
 import unittest
-
+from pathlib import Path
 
 WORKFLOW = (
     Path(__file__).resolve().parents[1] / ".github/workflows/quality.yml"

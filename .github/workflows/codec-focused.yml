@@ -1,0 +1,57 @@
+name: Focused codec verification
+on:
+  workflow_call:
+    inputs:
+      repository:
+        required: false
+        type: string
+        default: rptadv-codec-adapters
+      source_sha:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+permissions:
+  contents: read
+  packages: read
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate bounded test request
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_REPOSITORY: ${{ inputs.repository }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          printf '%s\n' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          case "$SOURCE_REPOSITORY" in rptadv-codec-adapters|librptadviax2) ;; *) exit 2 ;; esac
+          case "$TARGET" in test|abi-check|install-check|package-check|docs|lint|static-analysis|coverage|coverage-foundations|coverage-codecs|coverage-owned-c) ;; *) exit 2 ;; esac
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/${{ inputs.repository }}
+          ref: ${{ inputs.source_sha }}
+          path: production
+      - uses: actions/checkout@v7
+        with:
+          repository: cpeter1207/rpt_advanced-workflows
+          path: workflow-tools
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run requested focused check in freshly pulled image
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          sh workflow-tools/tools/run-in-quality-container.sh \
+            ghcr.io/cpeter1207/rptadv-codecs-quality-debian13:latest \
+            "$GITHUB_WORKSPACE/production" make "$TARGET"
+      - uses: actions/upload-artifact@v7
+        if: always() && startsWith(inputs.target, 'coverage')
+        with:
+          name: codec-coverage-amd64
+          path: production/build/coverage
+          if-no-files-found: warn
