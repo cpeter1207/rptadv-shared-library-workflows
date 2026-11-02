@@ -39,3 +39,9 @@ Candidate sources stay in disposable build directories. Consumers link the
 resulting shared objects, never a copied source or static implementation. Explicit
 reinstallation prevents an older package with the same version from satisfying
 the check accidentally. This action does not tag or publish a release.
+
+Callers may place verified released runtime prerequisites in the package
+directory's `bootstrap/` subdirectory. The native builder installs those packages
+before building pinned source candidates, including when invoked from an Ubuntu
+host through the disposable Debian 13 container. Other package archives in the
+output directory are not bootstrap inputs.

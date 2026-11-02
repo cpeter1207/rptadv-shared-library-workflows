@@ -14,6 +14,11 @@ jq -e -f "$(dirname "$0")/manifest.jq" "$manifest" >/dev/null
 workspace=$(mktemp -d)
 trap 'rm -rf -- "$workspace"' EXIT
 architecture=$(dpkg --print-architecture)
+# Callers may supply trusted released runtimes needed to install a source candidate.
+bootstrap_packages=("$destination"/bootstrap/*.deb)
+if [[ -f "${bootstrap_packages[0]}" ]]; then
+  apt-get install --reinstall -y "${bootstrap_packages[@]}"
+fi
 while IFS= read -r dependency; do
   repository=$(jq -r .repository <<< "$dependency")
   revision=$(jq -r .sha <<< "$dependency")

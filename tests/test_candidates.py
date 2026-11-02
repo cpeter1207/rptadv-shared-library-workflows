@@ -1,7 +1,9 @@
 """Candidate ABI inputs must be immutable, bounded project-owned data."""
 
 import json
+import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,6 +14,34 @@ VALIDATOR = (
 
 
 class CandidateManifest(unittest.TestCase):
+    def test_only_bootstrap_archives_seed_source_builds(self):
+        source = (VALIDATOR.parent / "build.sh").read_text()
+        setup = source.split("architecture=$(dpkg --print-architecture)\n", 1)[1]
+        setup = setup.split("while IFS= read -r dependency;", 1)[0]
+        for seeded in (False, True):
+            with self.subTest(seeded=seeded), tempfile.TemporaryDirectory() as work:
+                directory = Path(work)
+                (directory / "ordinary.deb").touch()
+                if seeded:
+                    (directory / "bootstrap").mkdir()
+                    (directory / "bootstrap/runtime.deb").touch()
+                log = directory / "apt.log"
+                subprocess.run(
+                    [
+                        "bash",
+                        "-ec",
+                        'apt-get() { printf "%s\\n" "$*" > "$APT_LOG"; }; ' + setup,
+                    ],
+                    env=dict(os.environ, destination=work, APT_LOG=str(log)),
+                    check=True,
+                )
+                self.assertEqual(log.exists(), seeded)
+                if seeded:
+                    self.assertEqual(
+                        log.read_text().strip(),
+                        f"install --reinstall -y {directory}/bootstrap/runtime.deb",
+                    )
+
     def validate(self, value):
         return (
             subprocess.run(

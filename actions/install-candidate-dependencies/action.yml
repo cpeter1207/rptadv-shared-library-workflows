@@ -5,7 +5,7 @@ inputs:
     description: Optional ordered source dependency manifest in the caller checkout.
     default: .github/dependencies.json
   package-directory:
-    description: Directory receiving candidate Debian packages.
+    description: Candidate package directory; optional bootstrap/*.deb supplies released prerequisites.
     default: dependencies/packages
   install:
     description: Install candidates into the current Debian 13 job container.
