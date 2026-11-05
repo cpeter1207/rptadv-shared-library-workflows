@@ -3,6 +3,8 @@ type == "array" and length > 0 and all(.[];
     "rptadv-samplerate-adapter",
     "rate_adjusting_pcm_ring",
     "librptadvradio",
+    "librptadvremote",
+    "rptadv-hamlib-adapter",
     "rptadv-portaudio-alsa-adapter",
     "rptadv-gpio-adapter",
     "rptadv-ffmpeg-adapter",

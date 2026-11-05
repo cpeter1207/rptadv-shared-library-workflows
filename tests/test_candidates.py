@@ -72,6 +72,11 @@ class CandidateManifest(unittest.TestCase):
 
     def test_published_libraries_and_adapters_are_valid_candidate_sources(self):
         packages = {
+            "librptadvremote": ["librptadvremote1", "librptadvremote-dev"],
+            "rptadv-hamlib-adapter": [
+                "librptadv-hamlib-adapter1",
+                "librptadv-hamlib-adapter-dev",
+            ],
             "librptadvradio": ["librptadvradio4", "librptadvradio-dev"],
             "librptadvecholink": ["librptadvecholink1", "librptadvecholink-dev"],
             "rptadv-portaudio-alsa-adapter": [
