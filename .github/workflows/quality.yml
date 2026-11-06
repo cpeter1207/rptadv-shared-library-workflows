@@ -12,6 +12,10 @@ on:
         description: Optional prebuilt native multi-architecture quality image.
         type: string
         default: ''
+      native_docker_socket:
+        description: Allow native package verification to use the host Docker socket.
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -71,6 +75,7 @@ jobs:
           EXPECTED_ARCH: ${{ matrix.arch }}
           QUALITY_IMAGE: ${{ inputs.quality_image || 'shared-quality:local' }}
           RPTADV_CONTAINER_PULL: ${{ inputs.quality_image == '' && '0' || '1' }}
+          RPTADV_CONTAINER_DOCKER_SOCKET: ${{ inputs.native_docker_socket && '1' || '0' }}
         run: |
           sh workflow-tools/tools/run-in-quality-container.sh "$QUALITY_IMAGE" "$GITHUB_WORKSPACE/production" sh -c \
             'test "$(dpkg --print-architecture)" = "$1" && make platform-verify QUALITY_IMAGE="$2"' sh "$EXPECTED_ARCH" "$QUALITY_IMAGE"
