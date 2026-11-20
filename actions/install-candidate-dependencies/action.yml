@@ -40,6 +40,6 @@ runs:
         if [[ "$INSTALL_CANDIDATES" == true ]]; then
           [[ "$ID" == debian && "$VERSION_ID" == 13 ]]
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install --reinstall -y "$destination"/*.deb
+          DEBIAN_FRONTEND=noninteractive apt-get install --reinstall --allow-downgrades -y "$destination"/*.deb
           ldconfig
         fi

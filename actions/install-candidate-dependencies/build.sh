@@ -17,7 +17,7 @@ architecture=$(dpkg --print-architecture)
 # Callers may supply trusted released runtimes needed to install a source candidate.
 bootstrap_packages=("$destination"/bootstrap/*.deb)
 if [[ -f "${bootstrap_packages[0]}" ]]; then
-  apt-get install --reinstall -y "${bootstrap_packages[@]}"
+  apt-get install --reinstall --allow-downgrades -y "${bootstrap_packages[@]}"
 fi
 while IFS= read -r dependency; do
   repository=$(jq -r .repository <<< "$dependency")
@@ -42,6 +42,6 @@ while IFS= read -r dependency; do
     cp "${matches[0]}" "$destination/"
     packages+=("${matches[0]}")
   done < <(jq -r '.packages[]' <<< "$dependency")
-  apt-get install --reinstall -y "${packages[@]}"
+  apt-get install --reinstall --allow-downgrades -y "${packages[@]}"
   ldconfig
 done < <(jq -c '.[]' "$manifest")
