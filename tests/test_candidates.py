@@ -39,8 +39,64 @@ class CandidateManifest(unittest.TestCase):
                 if seeded:
                     self.assertEqual(
                         log.read_text().strip(),
-                        f"install --reinstall -y {directory}/bootstrap/runtime.deb",
+                        "install --reinstall --allow-downgrades -y "
+                        f"{directory}/bootstrap/runtime.deb",
                     )
+
+    def test_candidate_install_accepts_older_explicit_archives(self):
+        build = (VALIDATOR.parent / "build.sh").read_text()
+        action = (VALIDATOR.parent / "action.yml").read_text()
+        build_install = build.split("  done < <(", 1)[1].split("\n", 1)[1]
+        build_install = build_install.split("\ndone < <(", 1)[0]
+        condition = 'if [[ "$INSTALL_CANDIDATES" == true ]]; then'
+        job_install = condition + action.split(condition, 1)[1]
+        apt = """
+apt-get() {
+  if [[ "$1" == update ]]; then return; fi
+  if [[ " $* " != *" --allow-downgrades "* ]]; then
+    printf '%s\\n' 'A newer image package is already installed' >&2
+    return 100
+  fi
+  printf '%s\\n' "$@" > "$APT_LOG"
+}
+ldconfig() { :; }
+"""
+        for stage, script in (
+            (
+                "install after build",
+                'packages=("$destination"/*.deb)\n' + build_install,
+            ),
+            ("install into job", job_install),
+        ):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as work:
+                archive = Path(work) / "librptadvdtmf1_0.1.0~alpha3-1_amd64.deb"
+                archive.touch()
+                log = Path(work) / "apt.log"
+                result = subprocess.run(
+                    ["bash", "-ec", apt + script],
+                    env=dict(
+                        os.environ,
+                        destination=work,
+                        APT_LOG=str(log),
+                        INSTALL_CANDIDATES="true",
+                        ID="debian",
+                        VERSION_ID="13",
+                    ),
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(
+                    log.read_text().splitlines(),
+                    [
+                        "install",
+                        "--reinstall",
+                        "--allow-downgrades",
+                        "-y",
+                        str(archive),
+                    ],
+                )
 
     def validate(self, value):
         return (

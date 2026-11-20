@@ -37,8 +37,9 @@ released dependencies continue to use verified release artifacts.
 
 Candidate sources stay in disposable build directories. Consumers link the
 resulting shared objects, never a copied source or static implementation. Explicit
-reinstallation prevents an older package with the same version from satisfying
-the check accidentally. This action does not tag or publish a release.
+reinstallation uses the selected archive even when the CI image already
+contains the same version or a newer one. This action does not tag or publish
+a release.
 
 Callers may place verified released runtime prerequisites in the package
 directory's `bootstrap/` subdirectory. The native builder installs those packages
