@@ -10,5 +10,5 @@ jobs:
       - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.8 -color
       - name: Validate candidate dependency setup
         run: |
-          shellcheck -x actions/install-candidate-dependencies/build.sh
+          shellcheck -x actions/install-candidate-dependencies/*.sh
           python3 -m unittest discover -s tests

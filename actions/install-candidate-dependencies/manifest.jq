@@ -3,6 +3,7 @@ type == "array" and length > 0 and all(.[];
     "rptadv-samplerate-adapter",
     "rate_adjusting_pcm_ring",
     "librptadvradio",
+    "USBRadioPlus",
     "librptadvremote",
     "rptadv-hamlib-adapter",
     "rptadv-portaudio-alsa-adapter",
@@ -14,5 +15,6 @@ type == "array" and length > 0 and all(.[];
     "librptadvecholink",
     "rptadv-codec-adapters"
   )) and
+  (.repository != "USBRadioPlus" or (.packages | sort == ["libusbradioplus-product-dev", "libusbradioplus-product1"])) and
   (.sha | test("^[0-9a-f]{40}$")) and
   (.packages | type == "array" and length > 0 and all(.[]; test("^lib[a-z0-9][a-z0-9+.-]*$"))))
