@@ -12,3 +12,58 @@ jobs:
         run: |
           shellcheck -x actions/install-candidate-dependencies/*.sh
           python3 -m unittest discover -s tests
+  native-radio-sdk:
+    if: github.event_name == 'pull_request'
+    name: Pinned radio SDK (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ghcr.io/cpeter1207/rpt-advanced-quality-debian13:latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the exact radio candidate with its native compiler
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          CARGO_BUILD_JOBS: '2'
+          DEB_BUILD_OPTIONS: nocheck
+        run: |
+          set -eu
+          test "$(dpkg --print-architecture)" = "$EXPECTED_ARCH"
+          workspace=$(mktemp -d)
+          trap 'rm -rf -- "$workspace"' EXIT
+          mkdir "$workspace/source"
+          git -C "$workspace/source" init -q
+          git -C "$workspace/source" fetch -q --depth=1 https://github.com/cpeter1207/librptadvradio.git 83c715249516b176fca0297bffb2b145e98c8d27
+          git -C "$workspace/source" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$workspace/source" rev-parse HEAD)" = 83c715249516b176fca0297bffb2b145e98c8d27
+          test "$(git -C "$workspace/source" rev-parse 'HEAD^{tree}')" = 6826b763ee1a842690bc9566a2aff435766abf43
+          apt-get update -qq
+          cd "$workspace/source"
+          bash "$GITHUB_WORKSPACE/actions/install-candidate-dependencies/build-radio.sh" "$EXPECTED_ARCH" "$workspace"
+          for package in librptadvradio5 librptadvradio-dev; do
+            set -- "$workspace/${package}"_*_"$EXPECTED_ARCH".deb
+            test "$#" = 1
+            test -f "$1"
+            test "$(dpkg-deb -f "$1" Package)" = "$package"
+            test "$(dpkg-deb -f "$1" Architecture)" = "$EXPECTED_ARCH"
+            test "$(dpkg-deb -f "$1" Version)" = '0.1.0~alpha13-1'
+            sha256sum "$1"
+          done
+          mkdir "$workspace/staged"
+          dpkg-deb --extract "$workspace"/librptadvradio5_*_"$EXPECTED_ARCH".deb "$workspace/staged"
+          set -- "$workspace/staged/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"/librptadvradio.so.5.*
+          test "$#" = 1
+          test -f "$1"
+          readelf -d "$1" | grep -F '[librptadvradio.so.5]'
+          case "$EXPECTED_ARCH" in
+            amd64) machine='Advanced Micro Devices X86-64' ;;
+            arm64) machine=AArch64 ;;
+          esac
+          readelf -h "$1" | grep -F "$machine"

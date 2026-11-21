@@ -33,6 +33,8 @@ while IFS= read -r dependency; do
     cd "$directory"
     if [[ "$repository" == librptadvschedule && "$revision" == 238811360fc34908a8ea9d4174bfe49d874d2a0e ]]; then
       bash "$action_directory/build-schedule.sh" "$architecture" "$workspace"
+    elif [[ "$repository" == librptadvradio && "$revision" == 83c715249516b176fca0297bffb2b145e98c8d27 ]]; then
+      bash "$action_directory/build-radio.sh" "$architecture" "$workspace"
     else
       mk-build-deps --install --remove --tool 'apt-get -y --no-install-recommends' debian/control
       dpkg-buildpackage -us -uc -b
