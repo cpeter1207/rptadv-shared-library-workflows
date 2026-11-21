@@ -8,9 +8,10 @@ destination=$2
 export PATH="/opt/cargo/bin:/opt/rpt-advanced-quality/bin:/opt/usbradioplus-quality/bin:$PATH"
 export DEBIAN_FRONTEND=noninteractive DEB_BUILD_OPTIONS=nocheck CARGO_BUILD_JOBS=2
 apt-get update
-apt-get install -y ca-certificates git jq build-essential devscripts equivs
+apt-get install -y ca-certificates curl git jq build-essential devscripts equivs
 # Pins are data, not shell: reject moving refs, unexpected repositories and package names.
-jq -e -f "$(dirname "$0")/manifest.jq" "$manifest" >/dev/null
+action_directory=$(cd "$(dirname "$0")" && pwd)
+jq -e -f "$action_directory/manifest.jq" "$manifest" >/dev/null
 workspace=$(mktemp -d)
 trap 'rm -rf -- "$workspace"' EXIT
 architecture=$(dpkg --print-architecture)
@@ -30,8 +31,12 @@ while IFS= read -r dependency; do
   [[ "$(git -C "$directory" rev-parse HEAD)" == "$revision" ]]
   (
     cd "$directory"
-    mk-build-deps --install --remove --tool 'apt-get -y --no-install-recommends' debian/control
-    dpkg-buildpackage -us -uc -b
+    if [[ "$repository" == librptadvschedule && "$revision" == 238811360fc34908a8ea9d4174bfe49d874d2a0e ]]; then
+      bash "$action_directory/build-schedule.sh" "$architecture" "$workspace"
+    else
+      mk-build-deps --install --remove --tool 'apt-get -y --no-install-recommends' debian/control
+      dpkg-buildpackage -us -uc -b
+    fi
   )
   packages=()
   while IFS= read -r package; do

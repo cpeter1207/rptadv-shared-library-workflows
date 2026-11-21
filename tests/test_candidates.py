@@ -203,6 +203,22 @@ ldconfig() { :; }
             )
         )
 
+    def test_usb_source_requires_an_immutable_product_package_pair(self):
+        pair = ["libusbradioplus-product1", "libusbradioplus-product-dev"]
+        for revision, packages, accepted in (
+            ("0ab539e0bda75c5f28d191acde950824f4ec7c9c", pair, True),
+            ("main", pair, False),
+            ("a" * 40, pair[:1], False),
+            ("a" * 40, ["libunrelated"], False),
+        ):
+            with self.subTest(revision=revision, packages=packages):
+                entry = {
+                    "repository": "USBRadioPlus",
+                    "sha": revision,
+                    "packages": packages,
+                }
+                self.assertEqual(self.validate([entry]), accepted)
+
     def test_schedule_candidate_requires_immutable_revision(self):
         for revision, accepted in (
             ("622e81add8ac478385883fdaf5e9939ecce35109", True),
