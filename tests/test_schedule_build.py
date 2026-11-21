@@ -48,6 +48,39 @@ dpkg-buildpackage() { echo package; }
                 )
                 self.assertEqual(result.stdout.strip(), expected)
 
+    def test_exact_rust_database_diagnostics(self):
+        source = (ACTION / "build-schedule.sh").read_text()
+        script = "flags=()\n" + source.split("flags=()\n", 1)[1]
+        mocks = """
+dpkg-checkbuilddeps() { printf '%s\\n' "$DIAGNOSTIC" >&2; return "$STATUS"; }
+dpkg-buildpackage() { echo "$*"; }
+"""
+        cargo = "cargo (>= 1.93) | cargo-web (>= 1.93)"
+        rustc = "rustc (>= 1.93) | rustc-web (>= 1.93)"
+        for spelling in ("Unmet", "unmet"):
+            prefix = f"dpkg-checkbuilddeps: error: {spelling} build dependencies: "
+            for diagnostic, status, accepted in (
+                (prefix + cargo, 1, True),
+                (prefix + rustc, 1, True),
+                (prefix + cargo + " " + rustc, 1, True),
+                (prefix + cargo + " pkg-config", 1, False),
+                (prefix + cargo, 2, False),
+                (cargo, 1, False),
+                (prefix + cargo + "\nextra diagnostic", 1, False),
+            ):
+                with self.subTest(diagnostic=diagnostic, status=status):
+                    result = subprocess.run(
+                        ["bash", "-ec", mocks + script],
+                        env=dict(os.environ, DIAGNOSTIC=diagnostic, STATUS=str(status)),
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode == 0, accepted, result.stderr)
+                    self.assertEqual(
+                        result.stdout.strip(), "-us -uc -b -d" if accepted else ""
+                    )
+
     def test_compiler_architecture_hashes_and_original_debian_dependencies(self):
         for arch, target, version, host_ok, db, corrupt, expected in (
             ("amd64", "x86_64", "1.93.0", True, "missing-rust", False, "-us -uc -b -d"),

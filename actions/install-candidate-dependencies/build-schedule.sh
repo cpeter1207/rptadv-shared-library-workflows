@@ -43,10 +43,11 @@ else
   [[ "$status" == 1 ]]
   cargo_dep='cargo (>= 1.93) | cargo-web (>= 1.93)'
   rustc_dep='rustc (>= 1.93) | rustc-web (>= 1.93)'
-  case "$diagnostic" in
-    "dpkg-checkbuilddeps: error: unmet build dependencies: $cargo_dep" | \
-    "dpkg-checkbuilddeps: error: unmet build dependencies: $rustc_dep" | \
-    "dpkg-checkbuilddeps: error: unmet build dependencies: $cargo_dep $rustc_dep") flags=(-d) ;;
+  # Debian 13 and Ubuntu 24.04 use different initial case for this C-locale message.
+  dependencies=${diagnostic#dpkg-checkbuilddeps: error: [Uu]nmet build dependencies: }
+  [[ "$dependencies" != "$diagnostic" ]]
+  case "$dependencies" in
+    "$cargo_dep" | "$rustc_dep" | "$cargo_dep $rustc_dep") flags=(-d) ;;
     *) exit 1 ;;
   esac
 fi
