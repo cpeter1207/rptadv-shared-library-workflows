@@ -46,3 +46,8 @@ directory's `bootstrap/` subdirectory. The native builder installs those package
 before building pinned source candidates, including when invoked from an Ubuntu
 host through the disposable Debian 13 container. Other package archives in the
 output directory are not bootstrap inputs.
+
+The reviewed radio candidate `83c715249516b176fca0297bffb2b145e98c8d27`
+uses an isolated, checksum-verified Rust 1.87.0 compiler on its native Debian
+architecture. Debian checks still reject every missing non-compiler build
+dependency. Other radio revisions use their ordinary package build path.

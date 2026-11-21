@@ -108,14 +108,26 @@ dpkg-buildpackage() { echo "$*"; }
                     expected,
                 )
 
-    def run_fixture(self, root, arch, target, version, host_ok, db, corrupt, expected):
+    def run_fixture(
+        self, root, arch, target, version, host_ok, db, corrupt, expected, *, config=None
+    ):
+        config = config or {
+            "script": "build-schedule.sh",
+            "release": "1.93.0",
+            "date": "2026-01-22",
+            "dependencies": DEPS,
+            "packages": {"debhelper-compat": "13", "pkg-config": "1"},
+            "non_rust": "debhelper-compat (= 13), pkg-config",
+            "temporary": "schedule-rust.*",
+        }
+        release = config["release"]
         action = root / "action"
         action.mkdir()
-        shutil.copy(ACTION / "build-schedule.sh", action)
+        shutil.copy(ACTION / config["script"], action)
         commands = root / "bin"
         commands.mkdir()
         for name, program in {
-            "curl": 'url=${!#}\nfile=${url##*/}\ntest "$url" = "https://static.rust-lang.org/dist/2026-01-22/$file"\ncp "$FIXTURE_ROOT/$file" .',
+            "curl": 'url=${!#}\nfile=${url##*/}\ntest "$url" = "https://static.rust-lang.org/dist/$FIXTURE_DATE/$file"\ncp "$FIXTURE_ROOT/$file" .',
             "apt-get": 'echo "$*" > "$FIXTURE_ROOT/apt"',
             "dpkg-checkbuilddeps": 'exec /usr/bin/dpkg-checkbuilddeps -I --admindir="$FIXTURE_ROOT/db" "$@"',
             "dpkg-buildpackage": 'echo "$*" > "$FIXTURE_ROOT/built"\ntest "$(command -v rustc)" = "$RUSTC"\ntest "$(command -v cargo)" = "$CARGO"',
@@ -126,18 +138,18 @@ dpkg-buildpackage() { echo "$*"; }
             path.chmod(0o755)
         # Preserve production archive names, exercising the real checksum, tar
         # extraction and install order. Only fixture archive contents differ.
-        lock = f"rust-1.93.0-{arch}.sha256"
+        lock = f"rust-{release}-{arch}.sha256"
         lines = []
         for line in (ACTION / lock).read_text().splitlines():
             _, filename = line.split()
             directory = root / filename.removesuffix(".tar.xz")
             directory.mkdir()
-            component = directory.name.removesuffix(f"-1.93.0-{target}")
+            component = directory.name.removesuffix(f"-{release}-{target}")
             installer = 'set -eu\nprefix=${1#--prefix=}\ntest "$2" = --disable-ldconfig\nmkdir -p "$prefix/bin"\n'
             if component in ("rustc", "cargo"):
                 binary = directory / component
                 if component == "rustc":
-                    output = f"host: {target if host_ok else 'wrong-host'}\nrelease: {version if version != 'bad-cargo' else '1.93.0'}"
+                    output = f"host: {target if host_ok else 'wrong-host'}\nrelease: {version if version != 'bad-cargo' else release}"
                 else:
                     output = f"cargo {version} (fixture)"
                 binary.write_text(f"#!/bin/sh\necho '{output}'\n")
@@ -155,14 +167,14 @@ dpkg-buildpackage() { echo "$*"; }
 
         (root / "debian").mkdir()
         (root / "debian/control").write_text(
-            f"Source: fixture\nBuild-Depends: {DEPS}\n"
+            f"Source: fixture\nBuild-Depends: {config['dependencies']}\n"
         )
         (root / "db").mkdir()
-        packages = {"debhelper-compat": "13", "pkg-config": "1"}
+        packages = dict(config["packages"])
         if db == "missing-nonrust":
             del packages["pkg-config"]
         if db == "complete":
-            packages.update(rustc="1.93", cargo="1.93")
+            packages.update(rustc=release, cargo=release)
         (root / "db/status").write_text(
             "".join(
                 f"Package: {name}\nStatus: install ok installed\nVersion: {ver}\nArchitecture: all\n\n"
@@ -175,7 +187,7 @@ dpkg-buildpackage() { echo "$*"; }
                 "-ec",
                 'before=$(rustc --version); bash "$1" "$2" "$3"; test "$(rustc --version)" = "$before"',
                 "bash",
-                str(action / "build-schedule.sh"),
+                str(action / config["script"]),
                 arch,
                 str(root),
             ],
@@ -183,6 +195,7 @@ dpkg-buildpackage() { echo "$*"; }
             env=dict(
                 os.environ,
                 FIXTURE_ROOT=str(root),
+                FIXTURE_DATE=config["date"],
                 PATH=f"{commands}:{os.environ['PATH']}",
             ),
             capture_output=True,
@@ -190,12 +203,12 @@ dpkg-buildpackage() { echo "$*"; }
             check=False,
         )
         self.assertEqual(result.returncode == 0, expected is not None, result.stderr)
-        self.assertEqual(list(root.glob("schedule-rust.*")), [])
+        self.assertEqual(list(root.glob(config["temporary"])), [])
         if expected is None:
             self.assertFalse((root / "built").exists())
         else:
             self.assertEqual((root / "built").read_text().strip(), expected)
             self.assertEqual(
                 (root / "apt").read_text().strip(),
-                "-y --no-install-recommends satisfy debhelper-compat (= 13), pkg-config",
+                "-y --no-install-recommends satisfy " + config["non_rust"],
             )
